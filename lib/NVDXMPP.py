@@ -27,7 +27,6 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
         # The message event is triggered whenever a message
         # stanza is received. Be aware that that includes
         # MUC messages and error messages.
-#        self.add_event_handler("groupchat_message", self.message)
         self.add_event_handler('message', self.message)
 
 
@@ -83,7 +82,12 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
             cve = rm.group(0)
             self.logger.info("Searching for: {}".format(cve))
             vulnerability = self.nvd.find_cve(cve)
-            print(vulnerability)
+            if not vulnerability:
+                message = "No such CVE found"
+                self.send_message(mto=msg['from'].bare,
+                                  mbody=message,
+                                  mtype='groupchat')
+                return 0
             message = "{} - {}/{} {} {} {} {} {}".format(vulnerability['cve_id'],
                                                          vulnerability['vulnerability']['cvss'],
                                                          vulnerability['vulnerability']['vector'],
