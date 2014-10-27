@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 
-class mongodb(object):
+class MongoDB(object):
     def __init__(self, nvd):
         self.nvd = nvd
         self.config = nvd.config
