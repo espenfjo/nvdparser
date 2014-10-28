@@ -1,3 +1,6 @@
 mongo_host=localhost
 username=
 password=
+xmpproom=security@xmpp.com
+xmppnick=cvebot
+cvssmin=6

@@ -83,7 +83,7 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
             self.logger.info("Searching for: {}".format(cve))
             vulnerability = self.nvd.find_cve(cve)
             if not vulnerability:
-                message = "No such CVE found"
+                message = "No information found for {}".format(cve)
                 self.send_message(mto=msg['from'].bare,
                                   mbody=message,
                                   mtype='groupchat')
@@ -107,8 +107,6 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
         """ Send an CVE update message to the room """
 
         if vulnerability['cvss'] and vulnerability['cvss'] < self.config.cvssmin:
-            print(self.config.cvssmin)
-            print(vulnerability['cvss'])
             return
 
         if not vulnerability['product'] or not vulnerability['product'][0]:
@@ -133,9 +131,8 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
     def new(self, vulnerability):
         """ Send a CVE to the room """
 
+
         if vulnerability['cvss'] and vulnerability['cvss'] < self.config.cvssmin:
-            print(self.config.cvssmin)
-            print(vulnerability['cvss'])
             return
         if not vulnerability['product'] or not vulnerability['product'][0]:
              vulnerability['product'] = []
