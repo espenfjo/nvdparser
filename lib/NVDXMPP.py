@@ -104,7 +104,7 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
     def updated(self, vulnerability):
         """ Send an CVE update message to the room """
 
-        if vulnerability['cvss'] < self.config.cvssmin:
+        if not vulnerability['cvss'] or vulnerability['cvss'] < int(self.config.cvssmin):
             return
 
         if not vulnerability['product'] or not vulnerability['product'][0]:
@@ -129,7 +129,7 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
         """ Send a CVE to the room """
 
 
-        if vulnerability['cvss'] < self.config.cvssmin:
+        if not vulnerability['cvss'] or vulnerability['cvss'] < int(self.config.cvssmin):
             return
         if not vulnerability['product'] or not vulnerability['product'][0]:
              vulnerability['product'] = []
