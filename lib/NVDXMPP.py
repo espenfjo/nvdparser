@@ -88,25 +88,23 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
                                   mbody=message,
                                   mtype='groupchat')
                 return 0
-            message = "{} - {}/{} {} {} {} {} {}".format(vulnerability['cve_id'],
-                                                         vulnerability['vulnerability']['cvss'],
-                                                         vulnerability['vulnerability']['vector'],
-                                                         vulnerability['vulnerability']['product'][0]['vendor'],
-                                                         vulnerability['vulnerability']['product'][0]['product'],
-                                                         vulnerability['vulnerability']['product'][0]['version'],
-                                                         vulnerability['vulnerability']['summary'],
-                                                         vulnerability['vulnerability']['update_date'])
+            url = "{}{}".format(self.config.cveurl, vulnerability['cve_id'])
+            message = "{} cvss={} vector={} vendor={} product={}: {} ( {} )".format(vulnerability['cve_id'],
+                                                                               vulnerability['vulnerability']['cvss'],
+                                                                               vulnerability['vulnerability']['vector'],
+                                                                               vulnerability['vulnerability']['product'][0]['vendor'],
+                                                                               vulnerability['vulnerability']['product'][0]['product'],
+                                                                               vulnerability['vulnerability']['summary'],
+                                                                               url)
 
         if message:
-            self.send_message(mto=msg['from'].bare,
-                              mbody=message,
-                              mtype='groupchat')
+            self.send_message(mto=msg['from'].bare, mbody=message, mtype='groupchat')
 
 
     def updated(self, vulnerability):
         """ Send an CVE update message to the room """
 
-        if vulnerability['cvss'] and vulnerability['cvss'] < self.config.cvssmin:
+        if vulnerability['cvss'] < self.config.cvssmin:
             return
 
         if not vulnerability['product'] or not vulnerability['product'][0]:
@@ -116,15 +114,14 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
                  "product":None,
                  "version":None
              })
-
-        message = "UPDATE: {} - {}/{} {} {} {} {} {}".format(vulnerability['cve_id'],
-                                                    vulnerability['cvss'],
-                                                    vulnerability['vector'],
-                                                    vulnerability['product'][0]['vendor'],
-                                                    vulnerability['product'][0]['product'],
-                                                    vulnerability['product'][0]['version'],
-                                                    vulnerability['summary'],
-                                                    vulnerability['update_date'])
+        url = "{}{}".format(self.config.cveurl, vulnerability['cve_id'])
+        message = "[UPDATE] {} cvss={} vector={} vendor={} product={}: {} {}".format(vulnerability['cve_id'],
+                                                                                     vulnerability['cvss'],
+                                                                                     vulnerability['vector'],
+                                                                                     vulnerability['product'][0]['vendor'],
+                                                                                     vulnerability['product'][0]['product'],
+                                                                                     vulnerability['summary'],
+                                                                                     url)
 
         self.send_message(mto=self.room, mbody=message, mtype='groupchat')
 
@@ -132,7 +129,7 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
         """ Send a CVE to the room """
 
 
-        if vulnerability['cvss'] and vulnerability['cvss'] < self.config.cvssmin:
+        if vulnerability['cvss'] < self.config.cvssmin:
             return
         if not vulnerability['product'] or not vulnerability['product'][0]:
              vulnerability['product'] = []
@@ -142,13 +139,11 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
                  "version":None
              })
 
-        message = "NEW: {} - {}/{} {} {} {} {} {}".format(vulnerability['cve_id'],
-                                                 vulnerability['cvss'],
-                                                 vulnerability['vector'],
-                                                 vulnerability['product'][0]['vendor'],
-                                                 vulnerability['product'][0]['product'],
-                                                 vulnerability['product'][0]['version'],
-                                                 vulnerability['summary'],
-                                                 vulnerability['update_date'])
-
+        message = "[NEW] {} cvss={} vector={} vendor={} product={}: {} ( {} )".format(vulnerability['cve_id'],
+                                                    vulnerability['cvss'],
+                                                    vulnerability['vector'],
+                                                    vulnerability['product'][0]['vendor'],
+                                                    vulnerability['product'][0]['product'],
+                                                    vulnerability['summary'],
+                                                    vulnerability['url'])
         self.send_message(mto=self.room, mbody=message, mtype='groupchat')

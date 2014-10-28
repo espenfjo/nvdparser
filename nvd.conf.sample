@@ -4,3 +4,4 @@ password=
 xmpproom=security@xmpp.com
 xmppnick=cvebot
 cvssmin=6
+cveurl=http://www.cvedetails.com/cve-details.php?cve_id=
