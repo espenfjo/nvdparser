@@ -35,7 +35,7 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
         self.register_plugin('xep_0199') # Ping
         self.register_plugin('xep_0045') # Room
 
-        if self.connect(('chat.basefarm.no', 5222)):
+        if self.connect():
             self.process(block=True)
             self.logger.debug("Disconnecting from jabber")
         else:
