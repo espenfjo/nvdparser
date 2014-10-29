@@ -107,7 +107,7 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
         Send an CVE update message to the room
         """
 
-        if not vulnerability.cvss or vulnerability.cvss < self.config.cvssmin:
+        if not vulnerability.cvss or vulnerability.cvss <= self.config.cvssmin:
             return
 
         self.send_vulnerability(vulnerability, vuln_type="UPDATE")
@@ -117,7 +117,7 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
         Send a new CVE to the room
         """
 
-        if not vulnerability.cvss or vulnerability.cvss < self.config.cvssmin:
+        if not vulnerability.cvss or vulnerability.cvss <= self.config.cvssmin:
             return
 
         self.send_vulnerability(vulnerability, vuln_type="NEW")
