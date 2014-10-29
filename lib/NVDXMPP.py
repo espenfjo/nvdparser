@@ -1,6 +1,8 @@
 import datetime
 import re
 import sleekxmpp
+from lib.Vulnerability import Vulnerability
+from lib.Product import Product
 
 class NVDXMPP(sleekxmpp.ClientXMPP):
     """ XMPP Class """
@@ -36,7 +38,7 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
         self.register_plugin('xep_0045') # Room
 
         if self.connect():
-            self.process(block=True)
+            self.process(block=False)
             self.logger.debug("Disconnecting from jabber")
         else:
             self.logger.error('Unable to connect to jabber')
@@ -56,7 +58,7 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
         """
         self.send_presence()
         self.get_roster()
-        room = self.plugin['xep_0045'].joinMUC(self.room,
+        self.plugin['xep_0045'].joinMUC(self.room,
                                         self.nick,
                                         wait=True)
 
@@ -78,72 +80,71 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
 
         message = None
         if '!cve' in msg['body']:
-            rm = re.search('CVE-[0-9]{4}-[0-9]{4,10}', msg['body'])
-            cve = rm.group(0)
-            self.logger.info("Searching for: {}".format(cve))
-            vulnerability = self.nvd.find_cve(cve)
-            if not vulnerability:
-                message = "No information found for {}".format(cve)
-                self.send_message(mto=msg['from'].bare,
-                                  mbody=message,
-                                  mtype='groupchat')
+            matcher = re.search(r'!cve \S+', msg['body'])
+            search_string = matcher.group(0)
+            self.logger.info("Searching for: {}".format(search_string))
+            cve_matcher = re.search(r'CVE-[0-9]{4}-[0-9]{4,10}', search_string)
+            if not cve_matcher:
+                message = "{} doesnt look like a CVE".format(search_string)
+                self.say(message)
                 return 0
-            url = "{}{}".format(self.config.cveurl, vulnerability['cve_id'])
-            message = "{} cvss={} vector={} vendor={} product={}: {} ( {} )".format(vulnerability['cve_id'],
-                                                                               vulnerability['vulnerability']['cvss'],
-                                                                               vulnerability['vulnerability']['vector'],
-                                                                               vulnerability['vulnerability']['product'][0]['vendor'],
-                                                                               vulnerability['vulnerability']['product'][0]['product'],
-                                                                               vulnerability['vulnerability']['summary'],
-                                                                               url)
 
-        if message:
-            self.send_message(mto=msg['from'].bare, mbody=message, mtype='groupchat')
+            cve = cve_matcher.group(0)
+            vulnerability = Vulnerability(self.nvd.find_cve(cve))
 
+            if not vulnerability:
+                message = "No information found for {}".format(search_string)
+                self.say(message)
+                return 0
+
+            self.send_vulnerability(vulnerability)
 
     def updated(self, vulnerability):
-        """ Send an CVE update message to the room """
+        """
+        Send an CVE update message to the room
+        """
 
-        if not vulnerability['cvss'] or vulnerability['cvss'] < int(self.config.cvssmin):
+        if not vulnerability.cvss or vulnerability.cvss < self.config.cvssmin:
             return
 
-        if not vulnerability['product'] or not vulnerability['product'][0]:
-             vulnerability['product'] = []
-             vulnerability['product'].append({
-                 "vendor":None,
-                 "product":None,
-                 "version":None
-             })
-        url = "{}{}".format(self.config.cveurl, vulnerability['cve_id'])
-        message = "[UPDATE] {} cvss={} vector={} vendor={} product={}: {} {}".format(vulnerability['cve_id'],
-                                                                                     vulnerability['cvss'],
-                                                                                     vulnerability['vector'],
-                                                                                     vulnerability['product'][0]['vendor'],
-                                                                                     vulnerability['product'][0]['product'],
-                                                                                     vulnerability['summary'],
-                                                                                     url)
-
-        self.send_message(mto=self.room, mbody=message, mtype='groupchat')
+        self.send_vulnerability(vulnerability, vuln_type="UPDATE")
 
     def new(self, vulnerability):
-        """ Send a CVE to the room """
+        """
+        Send a new CVE to the room
+        """
 
-
-        if not vulnerability['cvss'] or vulnerability['cvss'] < int(self.config.cvssmin):
+        if not vulnerability.cvss or vulnerability.cvss < self.config.cvssmin:
             return
-        if not vulnerability['product'] or not vulnerability['product'][0]:
-             vulnerability['product'] = []
-             vulnerability['product'].append({
-                 "vendor":None,
-                 "product":None,
-                 "version":None
-             })
 
-        message = "[NEW] {} cvss={} vector={} vendor={} product={}: {} ( {} )".format(vulnerability['cve_id'],
-                                                    vulnerability['cvss'],
-                                                    vulnerability['vector'],
-                                                    vulnerability['product'][0]['vendor'],
-                                                    vulnerability['product'][0]['product'],
-                                                    vulnerability['summary'],
-                                                    vulnerability['url'])
+        self.send_vulnerability(vulnerability, vuln_type="NEW")
+
+    def send_vulnerability(self, vulnerability, vuln_type=""):
+        """
+        Send a CVE to the room
+        """
+        cve_url = "{}{}".format(self.config.cveurl, vulnerability.cve_id)
+
+        if vuln_type != "":
+            vuln_type = "[{}] ".format(vuln_type)
+
+
+        if len(vulnerability.product) > 0:
+            product = Product(vulnerability.product[0])
+        else:
+            product = Product()
+        message = "{}{} cvss={} vector={} vendor={} product={}: {} ( {} )".format(vuln_type,
+                                                                                  vulnerability.cve_id,
+                                                                                  vulnerability.cvss,
+                                                                                  vulnerability.vector,
+                                                                                  product.vendor,
+                                                                                  product.product,
+                                                                                  vulnerability.summary,
+                                                                                  cve_url)
+        self.say(message)
+
+    def say(self, message):
+        """
+        Sends a message to the room
+        """
         self.send_message(mto=self.room, mbody=message, mtype='groupchat')

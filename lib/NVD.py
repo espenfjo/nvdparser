@@ -12,7 +12,8 @@ import lib.nvd._nvd as _nvd
 
 from lib.mongodb import MongoDB
 from lib.NVDXMPP import NVDXMPP
-
+from lib.Vulnerability import Vulnerability
+from lib.Product import Product
 
 class NVD(object):
     CHECK_INTERVAL = 1800
@@ -22,12 +23,12 @@ class NVD(object):
         self.logger = logging.getLogger("NVD")
         self.database = MongoDB(self)
         self.xmpp = NVDXMPP(self)
+        self.xmpp.run()
 
         if self.config.importxml:
             self.import_xml()
         else:
             self.update()
-            self.xmpp.run()
 
 
     def import_xml(self):
@@ -57,35 +58,26 @@ class NVD(object):
         self.logger.info("Parsing XML data")
         nvd_data = _nvd.CreateFromDocument(xml)
         for entry in nvd_data.entry:
-            vulnerability = {}
+            vulnerability = Vulnerability()
             if "REJECT" in entry.summary:
                 continue
-            vulnerability['product'] = []
             if entry.vulnerable_software_list:
-                product_list = entry.vulnerable_software_list.product
-                for product in product_list:
-                    try:
-                        vulnerability['product'].append({
-                            "vendor": product.split(':')[2],
-                            "product": product.split(':')[3],
-                            "version": product.split(':')[4]
-                        })
-                    except IndexError as e:
-                        self.logger.error(e)
-            vulnerability['cve_id'] = entry.cve_id
-            vulnerability['publish_date'] = str(entry.published_datetime)
-            vulnerability['update_date'] = str(entry.last_modified_datetime)
-            vulnerability['summary'] = entry.summary
-            vulnerability['cvss'] = None
-            vulnerability['vector'] = None
+                vulnerability.product = list(entry.vulnerable_software_list.product)
+
+            vulnerability.cve_id = entry.cve_id
+            vulnerability.publish_date = str(entry.published_datetime)
+            vulnerability.update_date = str(entry.last_modified_datetime)
+            vulnerability.summary = entry.summary
+            vulnerability.cvss = None
+            vulnerability.vector = None
 
             if entry.cvss:
-                vulnerability['cvss'] = str(entry.cvss.base_metrics[0].score)
-                vulnerability['vector'] = entry.cvss.base_metrics[0].access_vector.value()
+                vulnerability.cvss = str(entry.cvss.base_metrics[0].score)
+                vulnerability.vector = entry.cvss.base_metrics[0].access_vector.value()
 
             write_result = self.database.collection.update(
                 {"cve_id": entry.cve_id},
-                {"$set": {"vulnerability": vulnerability}},
+                {"$set": {"vulnerability": vulnerability.__dict__}},
                 upsert=True
             )
             self.logger.debug( write_result )
