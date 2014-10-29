@@ -23,11 +23,11 @@ class NVD(object):
         self.logger = logging.getLogger("NVD")
         self.database = MongoDB(self)
         self.xmpp = NVDXMPP(self)
-        self.xmpp.run()
 
         if self.config.importxml:
             self.import_xml()
         else:
+            self.xmpp.run()
             self.update()
 
 
