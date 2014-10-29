@@ -26,10 +26,11 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
         # our roster.
         self.add_event_handler('session_start', self.start)
 
-        # The message event is triggered whenever a message
-        # stanza is received. Be aware that that includes
-        # MUC messages and error messages.
-        self.add_event_handler('message', self.message)
+        # The groupchat_message event is triggered whenever a message
+        # stanza is received from any chat room. If you also also
+        # register a handler for the 'message' event, MUC messages
+        # will be processed by both handlers.
+        self.add_event_handler('groupchat_message', self.message)
 
 
     def run(self):
@@ -82,7 +83,7 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
         if '!cve' in msg['body']:
             matcher = re.search(r'!cve \S+', msg['body'])
             search_string = matcher.group(0)
-            self.logger.info("Searching for: {}".format(search_string))
+            self.logger.debug("Got search string: {}".format(search_string))
             cve_matcher = re.search(r'CVE-[0-9]{4}-[0-9]{4,10}', search_string)
             if not cve_matcher:
                 message = "{} doesnt look like a CVE".format(search_string)
@@ -90,10 +91,12 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
                 return 0
 
             cve = cve_matcher.group(0)
+            self.logger.info("Searching for: {}".format(cve))
+
             vulnerability = Vulnerability(self.nvd.find_cve(cve))
 
-            if not vulnerability:
-                message = "No information found for {}".format(search_string)
+            if not vulnerability.cve_id:
+                message = "No information found for {}".format(cve)
                 self.say(message)
                 return 0
 
