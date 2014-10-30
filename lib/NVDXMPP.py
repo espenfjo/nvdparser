@@ -132,16 +132,12 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
             vuln_type = "[{}] ".format(vuln_type)
 
 
-        if len(vulnerability.product) > 0:
-            product = Product(vulnerability.product[0])
-        else:
-            product = Product()
         message = "{}{} cvss={} vector={} vendor={} product={}: {} ( {} )".format(vuln_type,
                                                                                   vulnerability.cve_id,
                                                                                   vulnerability.cvss,
                                                                                   vulnerability.vector,
-                                                                                  product.vendor,
-                                                                                  product.product,
+                                                                                  vulnerability.product[0].vendor,
+                                                                                  vulnerability.product[0].product,
                                                                                   vulnerability.summary,
                                                                                   cve_url)
         self.say(message)

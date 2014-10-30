@@ -62,7 +62,10 @@ class NVD(object):
             if "REJECT" in entry.summary:
                 continue
             if entry.vulnerable_software_list:
-                vulnerability.product = list(entry.vulnerable_software_list.product)
+                vulnerability.cpe = list(entry.vulnerable_software_list.product)
+                for cpe in entry.vulnerable_software_list.product:
+                    product = Product(cpe)
+                    vulnerability.product.append(product)
 
             vulnerability.cve_id = entry.cve_id
             vulnerability.publish_date = str(entry.published_datetime)
@@ -78,7 +81,7 @@ class NVD(object):
             write_result = self.database.collection.update(
                 {"cve_id": entry.cve_id},
                 {"$set": {"vulnerability": vulnerability.__dict__}},
-                upsert=True
+                upsert=True, manipulate=True
             )
             self.logger.debug( write_result )
             if write_result['nModified'] > 0:
@@ -95,7 +98,6 @@ class NVD(object):
         """ Downloads a new and updated NVD recent XML if needed """
 
         url = 'http://static.nvd.nist.gov/feeds/xml/cve/nvdcve-2.0-Recent.xml'
-#        url = "https://blog.mrfjo.org/nvdcve-2.0-Recent.xml"
         request = urllib.request.Request(url)
         request.get_method = lambda: 'HEAD'
         try:
@@ -173,4 +175,4 @@ class NVD(object):
 
     def find_cve(self, cve):
         """ Search for and return CVE entry """
-        return self.database.collection.find_one({"cve_id": cve})
+        return self.database.collection.find_one({"cve_id": cve}, manipulate=True)
