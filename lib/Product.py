@@ -50,12 +50,13 @@ class Transform(SONManipulator):
             if isinstance(value, dict):
                 if "product" in value and isinstance(value["product"], list):
                     for (idx, product) in enumerate(value['product']):
-                        product_obj = Product()
-                        product_obj.vendor  = product['vendor']
-                        product_obj.product = product['product']
-                        product_obj.version = product['version']
-                        value['product'][idx] = product_obj
-                        son[key] = value
+                        if '_type' in product and product['_type'] == 'product':
+                            product_obj = Product()
+                            product_obj.vendor  = product['vendor']
+                            product_obj.product = product['product']
+                            product_obj.version = product['version']
+                            value['product'][idx] = product_obj
+                            son[key] = value
                 else:
                     son[key] = self.transform_incoming(value, collection)
 
