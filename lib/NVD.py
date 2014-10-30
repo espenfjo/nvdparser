@@ -1,11 +1,12 @@
+import copy
 import logging
 import http.client
-import sys
 import time
 from threading import Timer
 from threading import active_count
 from threading import Lock
 import os
+import sys
 import urllib.request
 
 import lib.nvd._nvd as _nvd
@@ -78,6 +79,11 @@ class NVD(object):
                 vulnerability.cvss = str(entry.cvss.base_metrics[0].score)
                 vulnerability.vector = entry.cvss.base_metrics[0].access_vector.value()
 
+            try:
+                vulnerability_raw = copy.deepcopy(vulnerability) # The Transform in Product chagnes the vulnerability object
+            except copy.error as e:
+                self.logger.error(e)
+
             write_result = self.database.collection.update(
                 {"cve_id": entry.cve_id},
                 {"$set": {"vulnerability": vulnerability.__dict__}},
@@ -86,15 +92,15 @@ class NVD(object):
             self.logger.debug( write_result )
             if write_result['nModified'] > 0:
                 if not self.config.importxml:
-                    self.xmpp.updated(vulnerability)
+                    self.xmpp.updated(vulnerability_raw)
                 self.logger.info("{} has been updated".format(entry.cve_id))
             elif write_result['updatedExisting'] == False:
                 if not self.config.importxml:
-                    self.xmpp.new(vulnerability)
+                    self.xmpp.new(vulnerability_raw)
                 self.logger.debug("Inserting {} into DB".format(entry.cve_id))
 
 
-    def download_if_needed(self):
+    def download_if_needed(self, force=False):
         """ Downloads a new and updated NVD recent XML if needed """
 
         url = 'http://static.nvd.nist.gov/feeds/xml/cve/nvdcve-2.0-Recent.xml'
@@ -126,7 +132,7 @@ class NVD(object):
         if mongo_xml:
             self.logger.info("Local XML age: {}".format(time.ctime(mongo_xml['xml']['mtime'])))
             if mongo_xml['xml']['mtime'] >= modified_time:
-                if self.config.force:
+                if self.config.force or force:
                     self.logger.info("Local XML is unchanged from remote. But forcing download")
                 else:
                     self.logger.info("Local XML is unchanged from remote. Skipping download")
@@ -159,7 +165,7 @@ class NVD(object):
         self.database.collection.update({"xml": {'$exists': True}}, xml, upsert=True)
         return 1
 
-    def update(self):
+    def update(self, force=False):
         """ Update timer. Downloads the NVD XML every CHECK_INTERVAL """
 
         self.logger.info("Hitting update interval ({}), downloading new XML".format(self.CHECK_INTERVAL))
@@ -167,7 +173,7 @@ class NVD(object):
         Timer(self.CHECK_INTERVAL, self.update).start()
 
         with Lock():
-            if self.download_if_needed():
+            if self.download_if_needed(force=force):
                 self.parse_nvd()
                 return 1
         return 0

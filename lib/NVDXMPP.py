@@ -81,26 +81,47 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
 
         message = None
         if '!cve' in msg['body']:
-            matcher = re.search(r'!cve \S+', msg['body'])
-            search_string = matcher.group(0)
-            self.logger.debug("Got search string: {}".format(search_string))
-            cve_matcher = re.search(r'CVE-[0-9]{4}-[0-9]{4,10}', search_string)
-            if not cve_matcher:
-                message = "{} doesnt look like a CVE".format(search_string)
-                self.say(message)
-                return 0
+            self.cve_trigger(msg)
+        elif '!update' in msg['body']:
+            self.nvd.update(force=True)
+        elif '!cvssmin' in msg['body']:
+            self.set_cvssmin(msg)
 
-            cve = cve_matcher.group(0)
-            self.logger.info("Searching for: {}".format(cve))
 
-            vulnerability = Vulnerability(self.nvd.find_cve(cve))
+    def set_cvssmin(self, msg):
+        """
+        Update the CVS minimum trigger
+        """
+        matcher = re.search(r'!update (\d+)', msg['body'])
+        print(matcher)
+        if matcher.groups() > 1:
+            cvssmin = str(matcher.group(1))
+            self.config.cvssmin = cvssmin
 
-            if not vulnerability.cve_id:
-                message = "No information found for {}".format(cve)
-                self.say(message)
-                return 0
+    def cve_trigger(self, msg):
+        """
+        Send information about a CVE from the !cve trigger
+        """
+        matcher = re.search(r'!cve \S+', msg['body'])
+        search_string = matcher.group(0)
+        self.logger.debug("Got search string: {}".format(search_string))
+        cve_matcher = re.search(r'CVE-[0-9]{4}-[0-9]{4,10}', search_string)
+        if not cve_matcher:
+            message = "{} doesnt look like a CVE".format(search_string)
+            self.say(message)
+            return 0
 
-            self.send_vulnerability(vulnerability)
+        cve = cve_matcher.group(0)
+        self.logger.info("Searching for: {}".format(cve))
+
+        vulnerability = Vulnerability(self.nvd.find_cve(cve))
+
+        if not vulnerability.cve_id:
+            message = "No information found for {}".format(cve)
+            self.say(message)
+            return 0
+
+        self.send_vulnerability(vulnerability)
 
     def updated(self, vulnerability):
         """
@@ -130,7 +151,6 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
 
         if vuln_type != "":
             vuln_type = "[{}] ".format(vuln_type)
-
 
         message = "{}{} cvss={} vector={} vendor={} product={}: {} ( {} )".format(vuln_type,
                                                                                   vulnerability.cve_id,
