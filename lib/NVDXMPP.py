@@ -90,12 +90,14 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
 
     def set_cvssmin(self, msg):
         """
-        Update the CVS minimum trigger
+        Update the CVS minimum trigger.
+        Only active for the running session,
+        config will have to be manually updated.
         """
-        matcher = re.search(r'!update (\d+)', msg['body'])
-        print(matcher)
-        if matcher.groups() > 1:
+        matcher = re.search(r'!cvssmin (\d+)', msg['body'])
+        if len(matcher.groups()) >= 1:
             cvssmin = str(matcher.group(1))
+            self.logger.info("Setting CVSS minimum score to {}".format(cvssmin))
             self.config.cvssmin = cvssmin
 
     def cve_trigger(self, msg):
