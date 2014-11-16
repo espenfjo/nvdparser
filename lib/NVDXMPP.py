@@ -1,8 +1,8 @@
-import datetime
 import re
 import sleekxmpp
 from lib.Vulnerability import Vulnerability
 from lib.Product import Product
+
 
 class NVDXMPP(sleekxmpp.ClientXMPP):
     """ XMPP Class """
@@ -32,11 +32,10 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
         # will be processed by both handlers.
         self.add_event_handler('groupchat_message', self.message)
 
-
     def run(self):
-        self.register_plugin('xep_0030') # Service Discovery
-        self.register_plugin('xep_0199') # Ping
-        self.register_plugin('xep_0045') # Room
+        self.register_plugin('xep_0030')  # Service Discovery
+        self.register_plugin('xep_0199')  # Ping
+        self.register_plugin('xep_0045')  # Room
 
         if self.connect():
             self.process(block=False)
@@ -87,7 +86,6 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
         elif '!cvssmin' in msg['body']:
             self.set_cvssmin(msg)
 
-
     def set_cvssmin(self, msg):
         """
         Update the CVS minimum trigger.
@@ -125,7 +123,7 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
 
         self.send_vulnerability(vulnerability)
 
-    def updated(self, vulnerability):
+    def updated(self, vulnerability, publish_date=None):
         """
         Send an CVE update message to the room
         """
@@ -133,7 +131,7 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
         if not vulnerability.cvss or vulnerability.cvss <= self.config.cvssmin:
             return
 
-        self.send_vulnerability(vulnerability, vuln_type="UPDATE")
+        self.send_vulnerability(vulnerability, vuln_type="UPDATE", publish_date=publish_date)
 
     def new(self, vulnerability):
         """
@@ -145,7 +143,7 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
 
         self.send_vulnerability(vulnerability, vuln_type="NEW")
 
-    def send_vulnerability(self, vulnerability, vuln_type=""):
+    def send_vulnerability(self, vulnerability, vuln_type="", publish_date=None):
         """
         Send a CVE to the room
         """
@@ -162,6 +160,8 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
                                                                                   vulnerability.product[0].product,
                                                                                   vulnerability.summary,
                                                                                   cve_url)
+        if publish_date:
+            message = "{} updated={}".format(message, publish_date)
         self.say(message)
 
     def say(self, message):

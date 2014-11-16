@@ -16,6 +16,7 @@ from lib.NVDXMPP import NVDXMPP
 from lib.Vulnerability import Vulnerability
 from lib.Product import Product
 
+
 class NVD(object):
     CHECK_INTERVAL = 1800
 
@@ -31,7 +32,6 @@ class NVD(object):
             self.xmpp.run()
             self.update()
 
-
     def import_xml(self):
         """
         Import XML from file to Database.
@@ -39,10 +39,8 @@ class NVD(object):
         """
         self.parse_nvd(self.config.importxml)
 
-
     def parse_nvd(self, xmlfile=None):
         """ Parse the XML and insert the CVE IDs into the database """
-
 
         if xmlfile and os.path.isfile(xmlfile):
             self.logger.info("Importing {} into database".format(xmlfile))
@@ -80,25 +78,31 @@ class NVD(object):
                 vulnerability.vector = entry.cvss.base_metrics[0].access_vector.value()
 
             try:
-                vulnerability_raw = copy.deepcopy(vulnerability) # The Transform in Product chagnes the vulnerability object
+                vulnerability_raw = copy.deepcopy(vulnerability)  # The Transform in Product chagnes the vulnerability object
             except copy.error as e:
                 self.logger.error(e)
 
+            existing = Vulnerability(self.find_cve(entry.cve_id))
+            if existing:
+                self.logger.info("We have {} from before".format(existing.cve_id))
             write_result = self.database.collection.update(
                 {"cve_id": entry.cve_id},
                 {"$set": {"vulnerability": vulnerability.__dict__}},
                 upsert=True, manipulate=True
             )
-            self.logger.debug( write_result )
+            self.logger.debug(write_result)
+
             if write_result['nModified'] > 0:
                 if not self.config.importxml:
-                    self.xmpp.updated(vulnerability_raw)
+                    if existing.cvss == vulnerability.cvss:
+                        self.logger.debug("Existing CVSS of {} equals this CVSS of {}, skipping print".format(existing.cvss, vulnerability.cvss))
+                    else:
+                        self.xmpp.updated(vulnerability_raw, vulnerability.publish_date)
                 self.logger.info("{} has been updated".format(entry.cve_id))
-            elif write_result['updatedExisting'] == False:
+            elif existing is False or write_result['updatedExisting'] is False:
                 if not self.config.importxml:
                     self.xmpp.new(vulnerability_raw)
                 self.logger.debug("Inserting {} into DB".format(entry.cve_id))
-
 
     def download_if_needed(self, force=False):
         """ Downloads a new and updated NVD recent XML if needed """
@@ -177,7 +181,6 @@ class NVD(object):
                 self.parse_nvd()
                 return 1
         return 0
-
 
     def find_cve(self, cve):
         """ Search for and return CVE entry """

@@ -10,6 +10,7 @@ from lib.NVD import NVD
 from lib.configreader import parse_config
 from lib.NVDXMPP import NVDXMPP
 
+
 def read_config():
     """ Parse CLI arguments, and parse configuration file """
 
@@ -49,6 +50,7 @@ def read_config():
     args = parser.parse_args(remaining_argv)
     return args
 
+
 def setup_logging():
     """ Configures logging of main NVD and XMPP stuff"""
 
@@ -66,7 +68,6 @@ def setup_logging():
             xmpplogger.setLevel(logging.INFO)
         elif config.debug >= 2:
             xmpplogger.setLevel(logging.DEBUG)
-
 
 
 config = read_config()

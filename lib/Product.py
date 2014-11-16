@@ -1,6 +1,7 @@
 import logging
 from pymongo.son_manipulator import SONManipulator
 
+
 class Product(object):
     def __init__(self, cpe=None):
         self.vendor = None
@@ -8,7 +9,7 @@ class Product(object):
         self.version = None
         if cpe:
             try:
-                self.vendor  = cpe.split(':')[2]
+                self.vendor = cpe.split(':')[2]
                 self.product = cpe.split(':')[3]
                 self.version = cpe.split(':')[4]
             except IndexError as e:
@@ -52,7 +53,7 @@ class Transform(SONManipulator):
                     for (idx, product) in enumerate(value['product']):
                         if '_type' in product and product['_type'] == 'product':
                             product_obj = Product()
-                            product_obj.vendor  = product['vendor']
+                            product_obj.vendor = product['vendor']
                             product_obj.product = product['product']
                             product_obj.version = product['version']
                             value['product'][idx] = product_obj

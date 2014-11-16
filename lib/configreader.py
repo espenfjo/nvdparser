@@ -18,4 +18,3 @@ def parse_config(configfile):
             sys.exit(0)
     else:
         logging.error("Configuration file {} does not exist".format(configfile))
-
