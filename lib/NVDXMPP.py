@@ -161,7 +161,7 @@ class NVDXMPP(sleekxmpp.ClientXMPP):
                                                                                   vulnerability.summary,
                                                                                   cve_url)
         if publish_date:
-            message = "{} updated={}".format(message, publish_date)
+            message = "{} published={}".format(message, publish_date)
         self.say(message)
 
     def say(self, message):
