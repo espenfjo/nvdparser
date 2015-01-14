@@ -84,7 +84,7 @@ class NVD(object):
 
             existing = Vulnerability(self.find_cve(entry.cve_id))
             if existing:
-                self.logger.info("We have {} from before".format(existing.cve_id))
+                self.logger.info("We have {} from before with CVSS={}, new is={}".format(existing.cve_id, existing.cvss, vulnerability.cvss))
             write_result = self.database.collection.update(
                 {"cve_id": entry.cve_id},
                 {"$set": {"vulnerability": vulnerability.__dict__}},
