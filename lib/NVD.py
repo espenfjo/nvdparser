@@ -29,7 +29,8 @@ class NVD(object):
         if self.config.importxml:
             self.import_xml()
         else:
-            self.xmpp.run()
+            if not self.config.disablexmpp:
+                self.xmpp.run()
             self.update()
 
     def import_xml(self):

@@ -5,6 +5,7 @@
 """
 import argparse
 import logging
+from os.path import isfile
 
 from lib.NVD import NVD
 from lib.configreader import parse_config
@@ -14,11 +15,17 @@ from lib.NVDXMPP import NVDXMPP
 def read_config():
     """ Parse CLI arguments, and parse configuration file """
 
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    conf_parser = argparse.ArgumentParser(add_help=False)
 
-    parser.add_argument('-c', '--config',
+    conf_parser.add_argument('-c', '--config',
                         help="Configuration file", default="nvd.conf", type=str)
-    args, remaining_argv = parser.parse_known_args()
+    args, remaining_argv = conf_parser.parse_known_args()
+
+    parser = argparse.ArgumentParser(
+        parents=[conf_parser],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description=__doc__
+    )
 
     parser.add_argument('-t', '--time',
                         help="How old (in hours) should the XML be before downloading a new version",
@@ -31,10 +38,13 @@ def read_config():
                         help="XMPP chat room")
     parser.add_argument('-n', '--xmppnick',
                         help="XMPP nick")
+    parser.add_argument('-X', '--disablexmpp',
+                        action="store_true",
+                        help="Do not start the XMPP bot. Only download and parse the XML")
     parser.add_argument('-f', '--force',
                         help="Always download a new XML",
                         action="store_true")
-    parser.add_argument('-i', '--importxml',
+    parser.add_argument('-i', '--importxml', metavar="XML",
                         help="Import XML into the database")
     parser.add_argument('-C', '--cvssmin',
                         help="Always download a new XML",
@@ -45,8 +55,9 @@ def read_config():
                         help='Be verbose',
                         action="store_const", dest="loglevel", const=logging.INFO, default=logging.WARNING)
 
-    config = parse_config(args.config)
-    parser.set_defaults(**config)
+    if isfile(args.config):
+        config_obj = parse_config(args.config)
+        parser.set_defaults(**config_obj)
     args = parser.parse_args(remaining_argv)
     return args
 
