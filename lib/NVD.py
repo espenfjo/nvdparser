@@ -8,6 +8,7 @@ from threading import Lock
 import os
 import sys
 import urllib.request
+import zlib
 
 import lib.nvd._nvd as _nvd
 
@@ -108,7 +109,7 @@ class NVD(object):
     def download_if_needed(self, force=False):
         """ Downloads a new and updated NVD recent XML if needed """
 
-        url = 'http://static.nvd.nist.gov/feeds/xml/cve/nvdcve-2.0-Recent.xml'
+        url = 'http://static.nvd.nist.gov/feeds/xml/cve/nvdcve-2.0-Recent.xml.gz'
         request = urllib.request.Request(url)
         request.get_method = lambda: 'HEAD'
         try:
@@ -164,7 +165,7 @@ class NVD(object):
         xml = {
             "xml": {
                 "mtime": modified_time,
-                "data": response.read()
+                "data": zlib.decompress(response.read())
             }
         }
         self.database.collection.update({"xml": {'$exists': True}}, xml, upsert=True)
