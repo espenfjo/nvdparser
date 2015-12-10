@@ -162,10 +162,11 @@ class NVD(object):
             self.logger.error('generic exception: ' + traceback.format_exc())
             sys.exit(1)
 
+        gzip = zlib.decompressobj(16 + zlib.MAX_WBITS)
         xml = {
             "xml": {
                 "mtime": modified_time,
-                "data": zlib.decompress(response.read())
+                "data": gzip.decompress(response.read())
             }
         }
         self.database.collection.update({"xml": {'$exists': True}}, xml, upsert=True)
